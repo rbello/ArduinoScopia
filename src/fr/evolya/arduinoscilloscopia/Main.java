@@ -1,5 +1,13 @@
 package fr.evolya.arduinoscilloscopia;
 
+import static org.kordamp.ikonli.weathericons.WeatherIcons.SNOW;
+
+import java.time.LocalTime;
+import java.util.Locale;
+import java.util.Random;
+
+import org.kordamp.ikonli.javafx.FontIcon;
+
 import eu.hansolo.fx.regulators.ColorRegulator;
 import eu.hansolo.fx.regulators.ColorRegulatorBuilder;
 import eu.hansolo.fx.regulators.FeedbackRegulator;
@@ -23,6 +31,7 @@ import eu.hansolo.tilesfx.skins.LeaderBoardItem;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Background;
@@ -32,14 +41,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Stop;
 import javafx.stage.Stage;
-import javafx.scene.Scene;
-import org.kordamp.ikonli.javafx.FontIcon;
-
-import java.time.LocalTime;
-import java.util.Locale;
-import java.util.Random;
-
-import static org.kordamp.ikonli.weathericons.WeatherIcons.*;
 
 
 /**
