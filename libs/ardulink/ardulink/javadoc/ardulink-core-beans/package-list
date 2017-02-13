@@ -1,0 +1,3 @@
+org.ardulink.core.beans
+org.ardulink.core.beans.finder.api
+org.ardulink.core.beans.finder.impl
