@@ -2,10 +2,15 @@ package fr.evolya.arduinoscilloscopia;
 
 import static org.kordamp.ikonli.weathericons.WeatherIcons.SNOW;
 
+import java.io.IOException;
 import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Random;
 
+import org.ardulink.core.Link;
+import org.ardulink.core.Pin.DigitalPin;
+import org.ardulink.core.linkmanager.LinkManager;
+import org.ardulink.util.URIs;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import eu.hansolo.fx.regulators.ColorRegulator;
@@ -34,10 +39,14 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Stop;
 import javafx.stage.Stage;
@@ -107,6 +116,7 @@ public class Main extends Application {
     private Tile              colorRegulatorTile;
     private long              lastTimerCall;
     private AnimationTimer    timer;
+	private Link link;
 
 
     @Override public void init() {
@@ -555,43 +565,129 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
+    	
+    	Scene mainScene = new Scene(new VBox());
+    	
+    	
+    	MenuBar menuBar = new MenuBar();
+    	Menu menuFile = new Menu("Ajouter");
+    	MenuItem readDigit = new MenuItem("Etat d'une GPIO numérique");
+    	MenuItem readAnalog = new MenuItem("Etat d'une GPIO analogique");
+    	MenuItem setDigit = new MenuItem("Actionneur GPIO numérique");
+    	MenuItem setAnalog = new MenuItem("Actionneur GPIO analogique");
+    	menuFile.getItems().addAll(readDigit, readAnalog, setDigit, setAnalog);
+    	menuBar.getMenus().addAll(menuFile);
+    	
         FlowPane pane = new FlowPane(customTile, percentageTile, clockTile, gaugeTile, sparkLineTile, areaChartTile,
-                                     lineChartTile, timerControlTile, numberTile, textTile,
-                                     highLowTile, plusMinusTile, sliderTile, switchTile, worldTile, timeTile,
+                                     lineChartTile, /*timerControlTile, numberTile, textTile,*/
+                                     highLowTile, plusMinusTile, sliderTile, switchTile, /*worldTile, */timeTile,
                                      barChartTile, leaderBoardTile,
                                      ikonliTile, slimTile, dashboardTile, digitalTile,
                                      simpleDigitalTile, indicatorTile, simpleSectionTile,
                                      bulletChartTile, slimClockTile, spaceXTile,
-                                     regulatorTile, feedbackRegulatorTile, colorRegulatorTile);
+                                     regulatorTile, feedbackRegulatorTile/*, colorRegulatorTile*/);
         pane.setPadding(new Insets(10));
         pane.setHgap(10);
         pane.setVgap(10);
         pane.setCenterShape(true);
         pane.setPrefSize(1270,  1060);
         pane.setBackground(new Background(new BackgroundFill(Tile.BACKGROUND.darker(), CornerRadii.EMPTY, Insets.EMPTY)));
+        
+    	readDigit.setOnAction((e) -> {
+            Gauge gauge = createGauge(Gauge.SkinType.DIGITAL);
+            Tile tile = TileBuilder.create()
+                                      .prefSize(TILE_SIZE, TILE_SIZE)
+                                      .skinType(SkinType.CUSTOM)
+                                      .title("Read GPIO D08")
+                                      //.text("Temperature")
+                                      .graphic(gauge)
+                                      .build();
+    		pane.getChildren().addAll(tile);
+    	});
+    	readAnalog.setOnAction((e) -> {
+            Gauge gauge = createGauge(Gauge.SkinType.DIGITAL);
+            Tile tile = TileBuilder.create()
+                                      .prefSize(TILE_SIZE, TILE_SIZE)
+                                      .skinType(SkinType.CUSTOM)
+                                      .title("Read GPIO A02")
+                                      //.text("Temperature")
+                                      .graphic(gauge)
+                                      .build();
+    		pane.getChildren().addAll(tile);
+    	});
+    	setDigit.setOnAction((e) -> {
+            Tile tile = TileBuilder.create()
+                    .prefSize(TILE_SIZE, TILE_SIZE)
+                    .skinType(SkinType.SWITCH)
+                    .title("Change GPIO D03")
+//                    .text("Whatever text")
+//                    .description("Test")
+                    .build();
+            
+			switchTile.setOnSwitchPressed(evt -> {
+				System.out.println("Switch pressed");
+				try {
+					link.switchDigitalPin(DigitalPin.digitalPin(13), true);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			});
+			switchTile.setOnSwitchReleased(evt -> {
+				System.out.println("Switch released");
+				try {
+					link.switchDigitalPin(DigitalPin.digitalPin(13), false);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			});
+    		pane.getChildren().addAll(tile);
+    	});
+    	setAnalog.setOnAction((e) -> {
+    		Tile tile = TileBuilder.create()
+                    .prefSize(TILE_SIZE, TILE_SIZE)
+                    .skinType(SkinType.SLIDER)
+                    .title("Change GPIO A01")
+                    .description("A 01")
+                    .minValue(0)
+                    .maxValue(255)
+                    .decimals(0)
+                    .barBackgroundColor(Tile.FOREGROUND)
+                    .build();
+    		pane.getChildren().addAll(tile);
+    	});
 
-        Scene scene = new Scene(pane);
-
-        stage.setTitle("TilesFX Dashboard using Medusa");
-        stage.setScene(scene);
+        stage.setTitle("ArduinoScopia");
+        ((VBox) mainScene.getRoot()).getChildren().addAll(menuBar, pane);
+        stage.setScene(mainScene);
         stage.show();
 
         timer.start();
         
-        Arduino.create("COM3")
-        	.onConnected((uno) -> {
-        		System.out.println("Arduino " + uno + " is connected");
-        	})
-        	.onDisconnected((uno) -> {
-        		System.out.println("Arduino " + uno + " is disconnected");
-        	})
-        	.onRead((msg) -> {
-        		System.out.println("Received: " + msg);
-        	})
-//        	.onChange(Arduino.A0, () -> {
-//        		
+//        Arduino.create("COM3")
+//        	.onConnected((uno) -> {
+//        		System.out.println("Arduino " + uno + " is connected");
 //        	})
-        	.open();
+//        	.onDisconnected((uno) -> {
+//        		System.out.println("Arduino " + uno + " is disconnected");
+//        	})
+//        	.onRead((msg) -> {
+//        		System.out.println("Received: " + msg);
+//        	})
+////        	.onChange(Arduino.A0, () -> {
+////        		
+////        	})
+//        	.open();
+        
+        try {
+        	String connectionString = "ardulink://serial-jssc?port=COM3&baudrate=9600&pingprobe=false&waitsecs=1";
+        	link = LinkManager.getInstance().getConfigurer(URIs.newURI(connectionString)).newLink();
+        }
+        catch (Throwable t) {
+        	t.printStackTrace();
+        }
+        
     }
 
     private Gauge createGauge(final Gauge.SkinType TYPE) {
