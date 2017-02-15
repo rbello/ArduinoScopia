@@ -10,5 +10,8 @@
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/winDLLs/64bit/RXTXcomm.jar"/>
 	<classpathentry kind="lib" path="libs/ikonli-weathericons-pack-1.9.0.jar"/>
 	<classpathentry kind="lib" path="libs/ikonli-core-1.9.0.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-serial-jssc-2.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-base-2.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-util-2.0.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
