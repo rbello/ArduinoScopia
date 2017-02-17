@@ -13,5 +13,11 @@
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-serial-jssc-2.0.1.jar"/>
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-base-2.0.1.jar"/>
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-util-2.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/ardulink-core-beans-2.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/jssc-2.8.0.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/slf4j-log4j12-1.7.5.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/validation-api-1.0.0.GA.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/slf4j-api-1.7.12.jar"/>
+	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/log4j-1.2.16.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

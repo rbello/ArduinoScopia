@@ -9,8 +9,7 @@ import java.util.Random;
 
 import org.ardulink.core.Link;
 import org.ardulink.core.Pin.DigitalPin;
-import org.ardulink.core.linkmanager.LinkManager;
-import org.ardulink.util.URIs;
+import org.ardulink.core.convenience.Links;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import eu.hansolo.fx.regulators.ColorRegulator;
@@ -35,6 +34,9 @@ import eu.hansolo.tilesfx.skins.BarChartItem;
 import eu.hansolo.tilesfx.skins.LeaderBoardItem;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.chart.XYChart;
@@ -42,6 +44,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
@@ -580,11 +583,11 @@ public class Main extends Application {
     	
         FlowPane pane = new FlowPane(customTile, percentageTile, clockTile, gaugeTile, sparkLineTile, areaChartTile,
                                      lineChartTile, /*timerControlTile, numberTile, textTile,*/
-                                     highLowTile, plusMinusTile, sliderTile, switchTile, /*worldTile, */timeTile,
+                                     highLowTile, /*plusMinusTile, sliderTile, switchTile, worldTile, timeTile,*/
                                      barChartTile, leaderBoardTile,
                                      ikonliTile, slimTile, dashboardTile, digitalTile,
                                      simpleDigitalTile, indicatorTile, simpleSectionTile,
-                                     bulletChartTile, slimClockTile, spaceXTile,
+                                     /*bulletChartTile, slimClockTile,*/ spaceXTile,
                                      regulatorTile, feedbackRegulatorTile/*, colorRegulatorTile*/);
         pane.setPadding(new Insets(10));
         pane.setHgap(10);
@@ -624,16 +627,18 @@ public class Main extends Application {
 //                    .description("Test")
                     .build();
             
-			switchTile.setOnSwitchPressed(evt -> {
+			tile.setOnSwitchPressed(evt -> {
 				System.out.println("Switch pressed");
 				try {
+//					link.send
 					link.switchDigitalPin(DigitalPin.digitalPin(13), true);
+//					link.sendPowerPinSwitch(13, IProtocol.POWER_HIGH);
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			});
-			switchTile.setOnSwitchReleased(evt -> {
+			tile.setOnSwitchReleased(evt -> {
 				System.out.println("Switch released");
 				try {
 					link.switchDigitalPin(DigitalPin.digitalPin(13), false);
@@ -657,32 +662,32 @@ public class Main extends Application {
                     .build();
     		pane.getChildren().addAll(tile);
     	});
+    	
+    	final ScrollPane scroll = new ScrollPane();
+
+    	// http://stackoverflow.com/questions/17902197/add-scrollpane-into-flowpane
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);    // Horizontal scroll bar
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);    // Vertical scroll bar
+        scroll.setContent(pane);
+        scroll.viewportBoundsProperty().addListener(new ChangeListener<Bounds>() {
+            @Override
+            public void changed(ObservableValue<? extends Bounds> ov, Bounds oldBounds, Bounds bounds) {
+            	pane.setPrefWidth(bounds.getWidth());
+            	pane.setPrefHeight(bounds.getHeight());
+            }
+        });
 
         stage.setTitle("ArduinoScopia");
-        ((VBox) mainScene.getRoot()).getChildren().addAll(menuBar, pane);
+        ((VBox) mainScene.getRoot()).getChildren().addAll(menuBar, scroll);
         stage.setScene(mainScene);
         stage.show();
 
         timer.start();
         
-//        Arduino.create("COM3")
-//        	.onConnected((uno) -> {
-//        		System.out.println("Arduino " + uno + " is connected");
-//        	})
-//        	.onDisconnected((uno) -> {
-//        		System.out.println("Arduino " + uno + " is disconnected");
-//        	})
-//        	.onRead((msg) -> {
-//        		System.out.println("Received: " + msg);
-//        	})
-////        	.onChange(Arduino.A0, () -> {
-////        		
-////        	})
-//        	.open();
-        
         try {
-        	String connectionString = "ardulink://serial-jssc?port=COM3&baudrate=9600&pingprobe=false&waitsecs=1";
-        	link = LinkManager.getInstance().getConfigurer(URIs.newURI(connectionString)).newLink();
+        	String connectionString = "ardulink://serial-jssc?port=COM7&baudrate=9600&pingprobe=false&waitsecs=1";
+        	//link = LinkManager.getInstance().getConfigurer(URIs.newURI(connectionString)).newLink();
+        	link = Links.getDefault();
         }
         catch (Throwable t) {
         	t.printStackTrace();
