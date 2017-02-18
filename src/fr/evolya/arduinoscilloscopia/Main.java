@@ -1,16 +1,17 @@
 package fr.evolya.arduinoscilloscopia;
 
-import static org.kordamp.ikonli.weathericons.WeatherIcons.SNOW;
-
 import java.io.IOException;
 import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Random;
 
 import org.ardulink.core.Link;
-import org.ardulink.core.Pin.DigitalPin;
-import org.ardulink.core.convenience.Links;
-import org.kordamp.ikonli.javafx.FontIcon;
+import org.ardulink.core.Pin;
+import org.ardulink.core.events.AnalogPinValueChangedEvent;
+import org.ardulink.core.events.DigitalPinValueChangedEvent;
+import org.ardulink.core.events.EventListener;
+import org.ardulink.core.linkmanager.LinkManager;
+import org.ardulink.util.URIs;
 
 import eu.hansolo.fx.regulators.ColorRegulator;
 import eu.hansolo.fx.regulators.ColorRegulatorBuilder;
@@ -34,6 +35,7 @@ import eu.hansolo.tilesfx.skins.BarChartItem;
 import eu.hansolo.tilesfx.skins.LeaderBoardItem;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Bounds;
@@ -91,8 +93,6 @@ public class Main extends Application {
     private Tile              barChartTile;
     private Tile              customTile;
     private Tile              leaderBoardTile;
-    private FontIcon          icon;
-    private Tile              ikonliTile;
     private Gauge             indicatorGauge;
     private Tile              indicatorTile;
     private Gauge             slimGauge;
@@ -120,6 +120,7 @@ public class Main extends Application {
     private long              lastTimerCall;
     private AnimationTimer    timer;
 	private Link link;
+
 
 
     @Override public void init() {
@@ -369,17 +370,6 @@ public class Main extends Application {
                                      .leaderBoardItems(leaderBoardItem1, leaderBoardItem2, leaderBoardItem3, leaderBoardItem4)
                                      .build();
 
-        icon = new FontIcon(SNOW);
-        icon.setIconSize((int) TILE_SIZE);
-        icon.setFill(Tile.FOREGROUND);
-        ikonliTile = TileBuilder.create()
-                                .skinType(SkinType.CUSTOM)
-                                .prefSize(TILE_SIZE, TILE_SIZE)
-                                .title("Ikonli Icon")
-                                .graphic(icon)
-                                .text("Snow")
-                                .build();
-
         slimGauge = createGauge(Gauge.SkinType.SLIM);
         slimTile  = TileBuilder.create()
                                .prefSize(TILE_SIZE, TILE_SIZE)
@@ -520,7 +510,7 @@ public class Main extends Application {
                                         .text("Light")
                                         .graphic(colorRegulator)
                                         .build();
-
+        
 
         lastTimerCall = System.nanoTime();
         timer = new AnimationTimer() {
@@ -585,7 +575,7 @@ public class Main extends Application {
                                      lineChartTile, /*timerControlTile, numberTile, textTile,*/
                                      highLowTile, /*plusMinusTile, sliderTile, switchTile, worldTile, timeTile,*/
                                      barChartTile, leaderBoardTile,
-                                     ikonliTile, slimTile, dashboardTile, digitalTile,
+                                     slimTile, dashboardTile, digitalTile,
                                      simpleDigitalTile, indicatorTile, simpleSectionTile,
                                      /*bulletChartTile, slimClockTile,*/ spaceXTile,
                                      regulatorTile, feedbackRegulatorTile/*, colorRegulatorTile*/);
@@ -597,57 +587,13 @@ public class Main extends Application {
         pane.setBackground(new Background(new BackgroundFill(Tile.BACKGROUND.darker(), CornerRadii.EMPTY, Insets.EMPTY)));
         
     	readDigit.setOnAction((e) -> {
-            Gauge gauge = createGauge(Gauge.SkinType.DIGITAL);
-            Tile tile = TileBuilder.create()
-                                      .prefSize(TILE_SIZE, TILE_SIZE)
-                                      .skinType(SkinType.CUSTOM)
-                                      .title("Read GPIO D08")
-                                      //.text("Temperature")
-                                      .graphic(gauge)
-                                      .build();
-    		pane.getChildren().addAll(tile);
+    		pane.getChildren().addAll(Factory.createDigitalReadTile("D05", 5, link));
     	});
     	readAnalog.setOnAction((e) -> {
-            Gauge gauge = createGauge(Gauge.SkinType.DIGITAL);
-            Tile tile = TileBuilder.create()
-                                      .prefSize(TILE_SIZE, TILE_SIZE)
-                                      .skinType(SkinType.CUSTOM)
-                                      .title("Read GPIO A02")
-                                      //.text("Temperature")
-                                      .graphic(gauge)
-                                      .build();
-    		pane.getChildren().addAll(tile);
+            pane.getChildren().addAll(Factory.createAnalogReadTile("A0", 14, link));
     	});
     	setDigit.setOnAction((e) -> {
-            Tile tile = TileBuilder.create()
-                    .prefSize(TILE_SIZE, TILE_SIZE)
-                    .skinType(SkinType.SWITCH)
-                    .title("Change GPIO D03")
-//                    .text("Whatever text")
-//                    .description("Test")
-                    .build();
-            
-			tile.setOnSwitchPressed(evt -> {
-				System.out.println("Switch pressed");
-				try {
-//					link.send
-					link.switchDigitalPin(DigitalPin.digitalPin(13), true);
-//					link.sendPowerPinSwitch(13, IProtocol.POWER_HIGH);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			});
-			tile.setOnSwitchReleased(evt -> {
-				System.out.println("Switch released");
-				try {
-					link.switchDigitalPin(DigitalPin.digitalPin(13), false);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			});
-    		pane.getChildren().addAll(tile);
+    		pane.getChildren().addAll(Factory.createDigitalWriteTile("D04", 4, link));
     	});
     	setAnalog.setOnAction((e) -> {
     		Tile tile = TileBuilder.create()
@@ -682,16 +628,22 @@ public class Main extends Application {
         stage.setScene(mainScene);
         stage.show();
 
-        timer.start();
+        
         
         try {
-        	String connectionString = "ardulink://serial-jssc?port=COM7&baudrate=9600&pingprobe=false&waitsecs=1";
-        	//link = LinkManager.getInstance().getConfigurer(URIs.newURI(connectionString)).newLink();
-        	link = Links.getDefault();
+        	
+        	String connectionString = "ardulink://serial-jssc?port=COM5&baudrate=9600&pingprobe=false&waitsecs=1";
+        	LinkManager mgr = LinkManager.getInstance();
+        	link = mgr.getConfigurer(URIs.newURI(connectionString)).newLink();
+        	//link = Links.getDefault();
+        	
+        	
         }
         catch (Throwable t) {
         	t.printStackTrace();
         }
+        
+        timer.start();
         
     }
 
