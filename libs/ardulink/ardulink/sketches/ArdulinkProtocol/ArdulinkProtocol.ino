@@ -27,7 +27,7 @@ String inputString = "";         // a string to hold incoming data (this is gene
 boolean stringComplete = false;  // whether the string is complete (this is general code you can reuse)
 
 #define digitalPinListeningNum 14 // Change 14 if you have a different number of pins.
-#define analogPinListeningNum 6 // Change 6 if you have a different number of pins.
+#define analogPinListeningNum 20 // Change 6 if you have a different number of pins.
 boolean digitalPinListening[digitalPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
 boolean analogPinListening[analogPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
 int digitalPinListenedValue[digitalPinListeningNum]; // Array used to know which value is read last time.
@@ -135,7 +135,7 @@ void loop() {
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = true;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-          //pinMode(pin.toInt(), INPUT);
+          pinMode(14 + pin.toInt(), INPUT);
       } else if(opcode == "spla") { // Stop Listen Analog Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = false;
@@ -170,7 +170,7 @@ void loop() {
   int index = 0;
   for (index = 0; index < digitalPinListeningNum; index++) {
     if(digitalPinListening[index] == true) {
-      int value = digitalRead(index);
+      int value = digitalRead(index + 14);
       if(value != digitalPinListenedValue[index]) {
         digitalPinListenedValue[index] = value;
         Serial.print("alp://dred/");

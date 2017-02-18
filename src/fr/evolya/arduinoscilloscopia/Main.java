@@ -590,7 +590,7 @@ public class Main extends Application {
     		pane.getChildren().addAll(Factory.createDigitalReadTile("D05", 5, link));
     	});
     	readAnalog.setOnAction((e) -> {
-            pane.getChildren().addAll(Factory.createAnalogReadTile("A0", 14, link));
+            pane.getChildren().addAll(Factory.createAnalogReadTile("A0", 0, link));
     	});
     	setDigit.setOnAction((e) -> {
     		pane.getChildren().addAll(Factory.createDigitalWriteTile("D04", 4, link));
@@ -632,7 +632,7 @@ public class Main extends Application {
         
         try {
         	
-        	String connectionString = "ardulink://serial-jssc?port=COM5&baudrate=9600&pingprobe=false&waitsecs=1";
+        	String connectionString = "ardulink://serial-jssc?port=COM5&baudrate=115200&pingprobe=false&waitsecs=1";
         	LinkManager mgr = LinkManager.getInstance();
         	link = mgr.getConfigurer(URIs.newURI(connectionString)).newLink();
         	//link = Links.getDefault();
