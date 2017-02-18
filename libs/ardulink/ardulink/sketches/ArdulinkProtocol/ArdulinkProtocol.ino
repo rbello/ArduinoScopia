@@ -77,8 +77,10 @@ void loop() {
     if(inputString.startsWith("alp://")) { // OK is a message I know (this is general code you can reuse)
     
       boolean msgRecognized = true;
+
+      String opcode = inputString.substring(6,10);
       
-      if(inputString.substring(6,10) == "kprs") { // KeyPressed
+      if(opcode == "kprs") { // KeyPressed
         // here you can write your own code. For instance the commented code change pin intensity if you press 'a' or 's'
         // take the command and change intensity on pin 11 this is needed just as example for this sketch
         //char commandChar = inputString.charAt(14);
@@ -89,13 +91,13 @@ void loop() {
         //  intensity++;
         //  analogWrite(11,intensity);
         //}
-      } else if(inputString.substring(6,10) == "ppin") { // Power Pin Intensity (this is general code you can reuse)
+      } else if(opcode == "ppin") { // Power Pin Intensity (this is general code you can reuse)
           int separatorPosition = inputString.indexOf('/', 11 );
           String pin = inputString.substring(11,separatorPosition);
           String intens = inputString.substring(separatorPosition + 1);
           pinMode(pin.toInt(), OUTPUT);
           analogWrite(pin.toInt(),intens.toInt());
-      } else if(inputString.substring(6,10) == "ppsw") { // Power Pin Switch (this is general code you can reuse)
+      } else if(opcode == "ppsw") { // Power Pin Switch (this is general code you can reuse)
           int separatorPosition = inputString.indexOf('/', 11 );
           String pin = inputString.substring(11,separatorPosition);
           String power = inputString.substring(separatorPosition + 1);
@@ -105,7 +107,7 @@ void loop() {
           } else if(power.toInt() == 0) {
             digitalWrite(pin.toInt(), LOW);
           }
-      } else if(inputString.substring(6,10) == "tone") { // tone request (this is general code you can reuse)
+      } else if(opcode == "tone") { // tone request (this is general code you can reuse)
           int firstSlashPosition = inputString.indexOf('/', 11 );
           int secondSlashPosition = inputString.indexOf('/', firstSlashPosition + 1 );
           int pin = inputString.substring(11,firstSlashPosition).toInt();
@@ -116,24 +118,25 @@ void loop() {
           } else {
           	tone(pin, frequency, duration);
           }
-      } else if(inputString.substring(6,10) == "notn") { // no tone request (this is general code you can reuse)
+      } else if(opcode == "notn") { // no tone request (this is general code you can reuse)
           int firstSlashPosition = inputString.indexOf('/', 11 );
           int pin = inputString.substring(11,firstSlashPosition).toInt();
           noTone(pin);
-      } else if(inputString.substring(6,10) == "srld") { // Start Listen Digital Pin (this is general code you can reuse)
+      } else if(opcode == "srld") { // Start Listen Digital Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           digitalPinListening[pin.toInt()] = true;
           digitalPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
           pinMode(pin.toInt(), INPUT);
-      } else if(inputString.substring(6,10) == "spld") { // Stop Listen Digital Pin (this is general code you can reuse)
+      }  else if(opcode == "spld") { // Stop Listen Digital Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           digitalPinListening[pin.toInt()] = false;
           digitalPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-      } else if(inputString.substring(6,10) == "srla") { // Start Listen Analog Pin (this is general code you can reuse)
+      } else if(opcode == "srla") { // Start Listen Analog Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = true;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-      } else if(inputString.substring(6,10) == "spla") { // Stop Listen Analog Pin (this is general code you can reuse)
+          //pinMode(pin.toInt(), INPUT);
+      } else if(opcode == "spla") { // Stop Listen Analog Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = false;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
