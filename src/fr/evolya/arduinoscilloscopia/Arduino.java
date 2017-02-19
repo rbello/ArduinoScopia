@@ -14,6 +14,8 @@ import org.ardulink.core.events.EventListener;
 import org.ardulink.core.events.PinValueChangedEvent;
 import org.ardulink.core.linkmanager.LinkManager;
 import org.ardulink.util.URIs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Arduino implements EventListener {
 	
@@ -21,6 +23,8 @@ public class Arduino implements EventListener {
 	
 	private Map<Integer, ArrayList<PinListener<DigitalPinValueChangedEvent>>> listenersDigitalPin;
 	private Map<Integer, ArrayList<PinListener<AnalogPinValueChangedEvent>>> listenersAnalogicPin;
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(Arduino.class);
 	
 	private Arduino(String connectionString) {
 		try {
@@ -69,7 +73,9 @@ public class Arduino implements EventListener {
 	}
 	
 	private <E extends PinValueChangedEvent> void broadcast(E event, Map<Integer, ArrayList<PinListener<E>>> listeners) {
-		System.out.println(event);
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(event.toString());
+		}
 		// Pin number must be declared as listened
 		if (!listeners.containsKey(event.getPin().pinNum())) return;
 		// Fetch listeners for event propagation
@@ -170,6 +176,31 @@ public class Arduino implements EventListener {
 	@FunctionalInterface
 	public interface PinListener<E> {
 		public void stateChanged(E evt);
+	}
+
+	public boolean setAnalogicFrequency(int pinNumber, int delayMs) {
+		try {
+			link.sendCustomMessage("afreq/" + pinNumber + "/" + delayMs);
+			//link.sendCustomMessage("afreq", "" + pinNumber, "/", "" + delayMs);
+			return true;
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	public boolean setAnalogicThreshold(int pinNumber, int delta) {
+		try {
+			link.sendCustomMessage("atrhl/" + pinNumber + "/" + delta);
+			return true;
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
 	}
 	
 }

@@ -22,39 +22,45 @@ you code useful for a specific purpose. In this case you have to modify it to su
 your needs.
 */
 
-// int intensity = 0;               // led intensity this is needed just as example for this sketch
-//String inputString = "";         // a string to hold incoming data (this is general code you can reuse)
-//boolean stringComplete = false;  // whether the string is complete (this is general code you can reuse)
+#define DIGITAL_PIN_COUNT 14 // Change 14 if you have a different number of pins.
+#define ANALOG_PIN_COUNT 6 // Change 6 if you have a different number of pins.
+#define ANALOG_PIN_NUM_START 14 // Fix analogic pins numerotation (on most common arduinos, it should be equal to DIGITAL_PIN_COUNT)
+#define SERIAL_BAUDRATE 115200
 
-#define digitalPinListeningNum 14 // Change 14 if you have a different number of pins.
-#define analogPinListeningNum 6 // Change 6 if you have a different number of pins.
-boolean digitalPinListening[digitalPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
-boolean analogPinListening[analogPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
-int digitalPinListenedValue[digitalPinListeningNum]; // Array used to know which value is read last time.
-int analogPinListenedValue[analogPinListeningNum]; // Array used to know which value is read last time.
+boolean digitalPinListening[DIGITAL_PIN_COUNT]; // Array used to know which pins on the Arduino must be listening.
+boolean analogPinListening[ANALOG_PIN_COUNT]; // Array used to know which pins on the Arduino must be listening.
+int digitalPinListenedValue[DIGITAL_PIN_COUNT]; // Array used to know which value is read last time.
+int analogPinListenedValue[ANALOG_PIN_COUNT]; // Array used to know which value is read last time.
+int analogPinListenedFrequency[ANALOG_PIN_COUNT];
+long analogPinListenedLastRead[ANALOG_PIN_COUNT];
+int analogPinListenedThreshold[ANALOG_PIN_COUNT];
 
 void setup() {
-  // initialize serial: (this is general code you can reuse)
-  Serial.begin(115200);
-  
+
+  Serial.begin(SERIAL_BAUDRATE);
+
+  // Welcome message
   Serial.print("alp://rply/");
   Serial.print("ok?id=0");
-  Serial.print('\n'); // End of Message
+  Serial.print('\n');
   Serial.flush();
   
-  //set to false all listen variable
+  // Set to false all listen variable
   int index = 0;
-  for (index = 0; index < digitalPinListeningNum; index++) {
+  for (index = 0; index < DIGITAL_PIN_COUNT; index++) {
     digitalPinListening[index] = false;
     digitalPinListenedValue[index] = -1;
   }
-  for (index = 0; index < analogPinListeningNum; index++) {
+  for (index = 0; index < ANALOG_PIN_COUNT; index++) {
     analogPinListening[index] = false;
     analogPinListenedValue[index] = -1;
+    analogPinListenedFrequency[index] = 0;
+    analogPinListenedLastRead[index] = 0;
+    analogPinListenedThreshold[index] = 0;
   }
 
   // Turn off everything (not on RXTX)
-  for (index = 2; index < digitalPinListeningNum; index++) {
+  for (index = 2; index < DIGITAL_PIN_COUNT; index++) {
     pinMode(index, OUTPUT);
     digitalWrite(index, LOW);
   }
@@ -65,11 +71,11 @@ void loop() {
   // when a newline arrives:
   if (Serial.available() > 0) {
     String inputString = Serial.readString();
-    if(inputString.startsWith("alp://")) { // OK is a message I know (this is general code you can reuse)
+    if(inputString.startsWith("alp://")) { // OK is a message I know
     
       boolean msgRecognized = true;
 
-      String opcode = inputString.substring(6,10);
+      String opcode = inputString.substring(6, 10);
 
       //Serial.print("opcode:");
       //Serial.println(opcode);
@@ -85,13 +91,14 @@ void loop() {
         //  intensity++;
         //  analogWrite(11,intensity);
         //}
-      } else if(opcode == "ppin") { // Power Pin Intensity (this is general code you can reuse)
+      } else if(opcode == "ppin") { // Power Pin Intensity
           int separatorPosition = inputString.indexOf('/', 11 );
           String pin = inputString.substring(11,separatorPosition);
           String intens = inputString.substring(separatorPosition + 1);
           pinMode(pin.toInt(), OUTPUT);
           analogWrite(pin.toInt(),intens.toInt());
-      } else if(opcode == "ppsw") { // Power Pin Switch (this is general code you can reuse)
+      }
+      else if(opcode == "ppsw") { // Power Pin Switch
           int separatorPosition = inputString.indexOf('/', 11 );
           String pin = inputString.substring(11,separatorPosition);
           String power = inputString.substring(separatorPosition + 1);
@@ -101,10 +108,11 @@ void loop() {
           } else if(power.toInt() == 0) {
             digitalWrite(pin.toInt(), LOW);
           }
-      } else if(opcode == "tone") { // tone request (this is general code you can reuse)
-          int firstSlashPosition = inputString.indexOf('/', 11 );
-          int secondSlashPosition = inputString.indexOf('/', firstSlashPosition + 1 );
-          int pin = inputString.substring(11,firstSlashPosition).toInt();
+      }
+      else if(opcode == "tone") { // tone request
+          int firstSlashPosition = inputString.indexOf('/', 11);
+          int secondSlashPosition = inputString.indexOf('/', firstSlashPosition + 1);
+          int pin = inputString.substring(11, firstSlashPosition).toInt();
           int frequency = inputString.substring(firstSlashPosition + 1, secondSlashPosition).toInt();
           int duration = inputString.substring(secondSlashPosition + 1).toInt();
           if(duration == -1) {
@@ -112,36 +120,76 @@ void loop() {
           } else {
           	tone(pin, frequency, duration);
           }
-      } else if(opcode == "notn") { // no tone request (this is general code you can reuse)
+      }
+      else if(opcode == "notn") { // no tone request
           int firstSlashPosition = inputString.indexOf('/', 11 );
           int pin = inputString.substring(11,firstSlashPosition).toInt();
           noTone(pin);
-      } else if(opcode == "srld") { // Start Listen Digital Pin (this is general code you can reuse)
+      }
+      else if(opcode == "srld") { // Start Listen Digital Pin
           String pin = inputString.substring(11);
           digitalPinListening[pin.toInt()] = true;
           digitalPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
           pinMode(pin.toInt(), INPUT);
-      }  else if(opcode == "spld") { // Stop Listen Digital Pin (this is general code you can reuse)
+      }
+      else if(opcode == "spld") { // Stop Listen Digital Pin
           String pin = inputString.substring(11);
           digitalPinListening[pin.toInt()] = false;
           digitalPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-      } else if(opcode == "srla") { // Start Listen Analog Pin (this is general code you can reuse)
+      }
+      else if(opcode == "srla") { // Start Listen Analog Pin
           String pin = inputString.substring(11);
           pin.trim();
           analogPinListening[pin.toInt()] = true;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-          pinMode(pin.toInt() + 14, INPUT);
+          pinMode(pin.toInt() + ANALOG_PIN_NUM_START, INPUT);
           //Serial.print("srla:");
           //Serial.println(pin.toInt());
-      } else if(opcode == "spla") { // Stop Listen Analog Pin (this is general code you can reuse)
+      }
+      else if(opcode == "spla") { // Stop Listen Analog Pin
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = false;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-      } else {
+      }
+      else if(opcode == "cust") { // Custom Message
+        int firstSlashPosition = inputString.indexOf('/', 11);
+        String msgCode = inputString.substring(11, firstSlashPosition);
+        // Change analogic frequency
+        if (msgCode == "afreq") {
+          int secondSlashPosition = inputString.indexOf('/', firstSlashPosition + 1);
+          int pin = inputString.substring(firstSlashPosition + 1, secondSlashPosition).toInt();
+          int frequency = inputString.substring(secondSlashPosition + 1).toInt();
+          analogPinListenedFrequency[pin] = frequency;
+          analogPinListenedLastRead[pin] = 0;
+          /*Serial.print("Change frequency for pin A");
+          Serial.print(pin);
+          Serial.print(" = ");
+          Serial.print(1000 / frequency);
+          Serial.print("Hz (delay: ");
+          Serial.print(frequency);
+          Serial.println(" ms)");
+          Serial.flush();*/
+        }
+        // Change analogic frequency
+        else if (msgCode == "atrhl") {
+          int secondSlashPosition = inputString.indexOf('/', firstSlashPosition + 1);
+          int pin = inputString.substring(firstSlashPosition + 1, secondSlashPosition).toInt();
+          int threshold = inputString.substring(secondSlashPosition + 1).toInt();
+          analogPinListenedThreshold[pin] = threshold;
+          /*Serial.print("Change threshold for pin A");
+          Serial.print(pin);
+          Serial.print(" = ");
+          Serial.println(threshold);
+          Serial.flush();*/
+        }
+        else 
+          msgRecognized = false;
+      }
+      else {
         msgRecognized = false; // this sketch doesn't know other messages in this case command is ko (not ok)
       }
       
-      // Prepare reply message if caller supply a message id (this is general code you can reuse)
+      // Prepare reply message if caller supply a message id
       int idPosition = inputString.indexOf("?id=");
       if(idPosition != -1) {
         String id = inputString.substring(idPosition + 4);
@@ -157,15 +205,11 @@ void loop() {
         Serial.flush();
       }
     }
-    
-    // clear the string:
-    /*inputString = "";
-    stringComplete = false;*/
   }
   
   // Send listen messages
   int index = 0;
-  for (index = 0; index < digitalPinListeningNum; index++) {
+  for (index = 0; index < DIGITAL_PIN_COUNT; index++) {
     if(digitalPinListening[index] == true) {
       int value = digitalRead(index);
       if(value != digitalPinListenedValue[index]) {
@@ -179,18 +223,25 @@ void loop() {
       }
     }
   }
-  for (index = 0; index < analogPinListeningNum; index++) {
-    if(analogPinListening[index] == true) {
-      int value = highPrecisionAnalogRead(index + 14);
-      if(value != analogPinListenedValue[index]) {
-        analogPinListenedValue[index] = value;
-        Serial.print("alp://ared/");
-        Serial.print(index);
-        Serial.print("/");
-        Serial.print(value);
-        Serial.print('\n'); // End of Message
-        Serial.flush();
-      }
+  long now = millis();
+  for (index = 0; index < ANALOG_PIN_COUNT; index++) {
+    // Is listening ?
+    if (analogPinListening[index] != true) continue;
+    // Frequency
+    if (analogPinListenedFrequency[index] != 0) {
+      if (now < analogPinListenedLastRead[index]) continue; // Wait
+      analogPinListenedLastRead[index] = millis() + analogPinListenedFrequency[index];
+    }
+    // Read analogic value
+    int value = highPrecisionAnalogRead(index + ANALOG_PIN_NUM_START);
+    if (abs(value - analogPinListenedValue[index]) > analogPinListenedThreshold[index]) {
+      analogPinListenedValue[index] = value;
+      Serial.print("alp://ared/");
+      Serial.print(index);
+      Serial.print("/");
+      Serial.print(value);
+      Serial.print('\n');
+      Serial.flush();
     }
   }
 }
@@ -204,30 +255,4 @@ int highPrecisionAnalogRead(int pin) {
   
   return (int)((value1 + value2 + value3 + value4) / 4.0);
 }
-
-/*
-  SerialEvent occurs whenever a new data comes in the
- hardware serial RX.  This routine is run between each
- time loop() runs, so using delay inside loop can delay
- response.  Multiple bytes of data may be available.
- This is general code you can reuse.
- */
-/*void serialEvent() {
-    
-  while (Serial.available() && !stringComplete) {
-    // get the new byte:
-    char inChar = (char)Serial.read();
-    // add it to the inputString:
-    inputString += inChar;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-    if (inChar == '\n') {
-      stringComplete = true;
-      Serial.print("rcvd:");
-      Serial.println(inputString);
-      Serial.flush();
-    }
-  }
-}
-*/
 

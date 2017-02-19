@@ -1,6 +1,7 @@
 package fr.evolya.arduinoscilloscopia;
 
 import java.util.Date;
+import java.util.Random;
 
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.typicons.Typicons;
@@ -10,8 +11,10 @@ import eu.hansolo.medusa.GaugeBuilder;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.TileBuilder;
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.scene.chart.XYChart;
+import javafx.scene.paint.Stop;
 
 public class Factory {
 
@@ -80,11 +83,17 @@ public class Factory {
                                   .graphic(gauge)
                                   .build();
         
+//        link.setAnalogicFrequency(pinNumber, 200);
+		link.setAnalogicThreshold(pinNumber, 2);
+        
         link.addAnalogicPinListener(pinNumber, (evt) -> {
 			Platform.runLater(() -> {
 				gauge.setValue(evt.getValue());
 			});
 		});
+        
+        
+        
         return tile;
 	}
 	
@@ -109,8 +118,12 @@ public class Factory {
 
 	public static Tile createAnalogGraphTile(String pinName, int pinNumber, Arduino link) {
 		// LineChart Data
-        XYChart.Series<Long, Integer> series = new XYChart.Series<Long, Integer>();
-        series.setName("Whatever");
+		
+//		OscilloscopeSeries series = new OscilloscopeSeries();
+		
+		
+//        XYChart.Series<Long, Integer> series = new XYChart.Series<Long, Integer>();
+//        series.setName("Whatever");
 //        series.getData().add(new XYChart.Data("MO", 23));
 //        series.getData().add(new XYChart.Data("TU", 21));
 //        series.getData().add(new XYChart.Data("WE", 20));
@@ -119,21 +132,64 @@ public class Factory {
 //        series.getData().add(new XYChart.Data("SA", 22));
 //        series.getData().add(new XYChart.Data("SU", 20));
 
-		Tile tile = TileBuilder.create()
-                .prefSize(TILE_SIZE, TILE_SIZE)
-                .skinType(SkinType.AREA_CHART)
-                .title("Analogic " + pinName)
-                .series(series)
-                .minValue(0)
-                .maxValue(1023)
-                .build();
+//		Tile tile = TileBuilder.create()
+//                .prefSize(TILE_SIZE, TILE_SIZE)
+//                .skinType(SkinType.AREA_CHART)
+//                .title("Analogic " + pinName)
+//                .series(series.getSeries())
+//                .minValue(0)
+//                .maxValue(1023)
+//                .build();
+//		
+
+//		
+
 		
+        Tile tile = TileBuilder.create()
+        		.minSize(2 * TILE_SIZE + 10, TILE_SIZE)
+                .maxSize(2 * TILE_SIZE + 10, TILE_SIZE)
+                .prefSize(2 * TILE_SIZE + 10, TILE_SIZE)
+//                .averagingPeriod(4)
+                .autoScale(false)
+                .title("Analogic " + pinName)
+                .gradientStops(new Stop(0, Tile.GREEN),
+                               new Stop(0.5, Tile.YELLOW),
+                               new Stop(1.0, Tile.RED))
+                .minValue(0)
+                .maxValue(1024)
+                .decimals(0)
+                .strokeWithGradient(true)
+                .skinType(SkinType.SPARK_LINE)
+                .build();
+        
+//        tile.setMinValue(0);
+//        tile.setMaxValue(1024);
+//        tile.setAutoScale(false);
+//        tile.setAlert(true);
+        
+//		AnimationTimer timer = new AnimationTimer() {
+//            private long lastTimerCall;
+//            private Random rnd = new Random();
+//			@Override
+//            public void handle(final long now) {
+//                if (now > lastTimerCall + 2_000_000_000) {
+//                	tile.setValue(rnd.nextDouble() * tile.getRange() + tile.getMinValue());
+//                	lastTimerCall = now;
+//                }
+//            }
+//		};
+//		
+//		timer.start();
+        
 		link.addAnalogicPinListener(pinNumber, (evt) -> {
 			Platform.runLater(() -> {
-				series.getData().add(new XYChart.Data(new Date().getTime(), 50));
+				tile.setValue(evt.getValue());
 			});
 		});
-		
+	
+		link.setAnalogicFrequency(pinNumber, 200);
+		link.setAnalogicThreshold(pinNumber, 2);
+
 		return tile;
 	}
 
