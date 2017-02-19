@@ -23,11 +23,11 @@ your needs.
 */
 
 // int intensity = 0;               // led intensity this is needed just as example for this sketch
-String inputString = "";         // a string to hold incoming data (this is general code you can reuse)
-boolean stringComplete = false;  // whether the string is complete (this is general code you can reuse)
+//String inputString = "";         // a string to hold incoming data (this is general code you can reuse)
+//boolean stringComplete = false;  // whether the string is complete (this is general code you can reuse)
 
 #define digitalPinListeningNum 14 // Change 14 if you have a different number of pins.
-#define analogPinListeningNum 20 // Change 6 if you have a different number of pins.
+#define analogPinListeningNum 6 // Change 6 if you have a different number of pins.
 boolean digitalPinListening[digitalPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
 boolean analogPinListening[analogPinListeningNum]; // Array used to know which pins on the Arduino must be listening.
 int digitalPinListenedValue[digitalPinListeningNum]; // Array used to know which value is read last time.
@@ -59,26 +59,20 @@ void setup() {
     digitalWrite(index, LOW);
   }
   
-  // Turn off LED this is needed just as example for this sketch
-//  analogWrite(11, intensity);
-  
-  // Read from 4 this is needed just as example for this sketch
-//  pinMode(4, INPUT);
-
-  // In order to work with analog input signal you have to set pinMode to INPUT please add Ax pinMode statement if you need for it
-  //pinMode(A0, INPUT);
-
 }
 
 void loop() {
   // when a newline arrives:
-  if (stringComplete) {
-    
+  if (Serial.available() > 0) {
+    String inputString = Serial.readString();
     if(inputString.startsWith("alp://")) { // OK is a message I know (this is general code you can reuse)
     
       boolean msgRecognized = true;
 
       String opcode = inputString.substring(6,10);
+
+      //Serial.print("opcode:");
+      //Serial.println(opcode);
       
       if(opcode == "kprs") { // KeyPressed
         // here you can write your own code. For instance the commented code change pin intensity if you press 'a' or 's'
@@ -133,9 +127,12 @@ void loop() {
           digitalPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
       } else if(opcode == "srla") { // Start Listen Analog Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
+          pin.trim();
           analogPinListening[pin.toInt()] = true;
           analogPinListenedValue[pin.toInt()] = -1; // Ensure a message back when start listen happens.
-          pinMode(14 + pin.toInt(), INPUT);
+          pinMode(pin.toInt() + 14, INPUT);
+          //Serial.print("srla:");
+          //Serial.println(pin.toInt());
       } else if(opcode == "spla") { // Stop Listen Analog Pin (this is general code you can reuse)
           String pin = inputString.substring(11);
           analogPinListening[pin.toInt()] = false;
@@ -162,15 +159,15 @@ void loop() {
     }
     
     // clear the string:
-    inputString = "";
-    stringComplete = false;
+    /*inputString = "";
+    stringComplete = false;*/
   }
   
   // Send listen messages
   int index = 0;
   for (index = 0; index < digitalPinListeningNum; index++) {
     if(digitalPinListening[index] == true) {
-      int value = digitalRead(index + 14);
+      int value = digitalRead(index);
       if(value != digitalPinListenedValue[index]) {
         digitalPinListenedValue[index] = value;
         Serial.print("alp://dred/");
@@ -184,7 +181,7 @@ void loop() {
   }
   for (index = 0; index < analogPinListeningNum; index++) {
     if(analogPinListening[index] == true) {
-      int value = highPrecisionAnalogRead(index);
+      int value = highPrecisionAnalogRead(index + 14);
       if(value != analogPinListenedValue[index]) {
         analogPinListenedValue[index] = value;
         Serial.print("alp://ared/");
@@ -200,12 +197,12 @@ void loop() {
 
 // Reads 4 times and computes the average value
 int highPrecisionAnalogRead(int pin) {
-  int value1 = analogRead(pin);
-  int value2 = analogRead(pin);
-  int value3 = analogRead(pin);
-  int value4 = analogRead(pin);
+  double value1 = analogRead(pin);
+  double value2 = analogRead(pin);
+  double value3 = analogRead(pin);
+  double value4 = analogRead(pin);
   
-  int retvalue = (value1 + value2 + value3 + value4) / 4;
+  return (int)((value1 + value2 + value3 + value4) / 4.0);
 }
 
 /*
@@ -215,7 +212,7 @@ int highPrecisionAnalogRead(int pin) {
  response.  Multiple bytes of data may be available.
  This is general code you can reuse.
  */
-void serialEvent() {
+/*void serialEvent() {
     
   while (Serial.available() && !stringComplete) {
     // get the new byte:
@@ -226,8 +223,11 @@ void serialEvent() {
     // so the main loop can do something about it:
     if (inChar == '\n') {
       stringComplete = true;
+      Serial.print("rcvd:");
+      Serial.println(inputString);
+      Serial.flush();
     }
   }
 }
-
+*/
 
