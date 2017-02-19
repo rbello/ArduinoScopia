@@ -1,13 +1,7 @@
 package fr.evolya.arduinoscilloscopia;
 
-import java.io.IOException;
+import java.util.Date;
 
-import org.ardulink.core.Link;
-import org.ardulink.core.Pin;
-import org.ardulink.core.Pin.DigitalPin;
-import org.ardulink.core.events.AnalogPinValueChangedEvent;
-import org.ardulink.core.events.DigitalPinValueChangedEvent;
-import org.ardulink.core.events.EventListener;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.typicons.Typicons;
 
@@ -17,7 +11,7 @@ import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.TileBuilder;
 import javafx.application.Platform;
-import javafx.scene.Node;
+import javafx.scene.chart.XYChart;
 
 public class Factory {
 
@@ -38,56 +32,42 @@ public class Factory {
         iconOff.setIconColor(Tile.RED);
 	}
 	
-	public static Tile createDigitalWriteTile(String portName, int portNumber, Link link) {
+	public static Tile createDigitalWriteTile(String pinName, int pinNumber, Arduino link) {
 		
 		Tile tile = TileBuilder.create()
                 .prefSize(TILE_SIZE, TILE_SIZE)
                 .skinType(SkinType.SWITCH)
-                .title("Change GPIO " + portName)
-                .text("Digital " + portNumber)
+                .title("Change GPIO " + pinName)
+                .text("Digital " + pinNumber)
                 .build();
 		
 		tile.setOnSwitchReleased(evt -> {
-			try {
-				link.switchDigitalPin(DigitalPin.digitalPin(portNumber), tile.isSelected());
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+			link.switchDigitalPin(pinNumber, tile.isSelected());
 		});
 		
 		return tile;
 	}
 
-	public static Tile createDigitalReadTile(String portName, int portNumber, Link link) {
+	public static Tile createDigitalReadTile(String pinName, int pinNumber, Arduino link) {
+		
 		Tile tile = TileBuilder.create()
                 .skinType(SkinType.CUSTOM)
                 .prefSize(TILE_SIZE, TILE_SIZE)
-                .title("Read GPIO " + portName)
+                .title("Read GPIO " + pinName)
                 .graphic(iconOn)
-                .text("Digital " + portNumber)
+                .text("Digital " + pinNumber)
                 .build();
-		try {
-			link.addListener(new EventListener() {
-				@Override
-				public void stateChanged(DigitalPinValueChangedEvent evt) {
-					if (evt.getPin().pinNum() != portNumber) return;
-					Platform.runLater(() -> {
-						tile.setGraphic(evt.getValue() ? iconOn : iconOff);
-					});
-				}
-				@Override
-				public void stateChanged(AnalogPinValueChangedEvent evt) { }
+		
+		link.addDigitalPinListener(pinNumber, (evt) -> {
+			Platform.runLater(() -> {
+				tile.setGraphic(evt.getValue() ? iconOn : iconOff);
 			});
-			link.startListening(Pin.digitalPin(portNumber));
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		});
+		
 		return tile;
 	}
 
-	public static Tile createAnalogReadTile(String portName, int portNumber, Link link) {
+	public static Tile createAnalogReadTile(String pinName, int pinNumber, Arduino link) {
         Gauge gauge = createGauge(Gauge.SkinType.DASHBOARD);
         gauge.setMinValue(0);
         gauge.setMaxValue(1023);
@@ -95,28 +75,16 @@ public class Factory {
         Tile tile = TileBuilder.create()
                                   .prefSize(TILE_SIZE, TILE_SIZE)
                                   .skinType(SkinType.CUSTOM)
-                                  .title("Read GPIO " + portName)
-                                  .text("Analogic " + portNumber)
+                                  .title("Read GPIO " + pinName)
+                                  .text("Analogic " + pinNumber)
                                   .graphic(gauge)
                                   .build();
-        try {
-			
-			link.addListener(new EventListener() {
-				@Override
-				public void stateChanged(DigitalPinValueChangedEvent evt) { }
-				@Override
-				public void stateChanged(AnalogPinValueChangedEvent evt) {
-					if (evt.getPin().pinNum() != portNumber) return;
-					Platform.runLater(() -> {
-						gauge.setValue(evt.getValue());
-					});
-				}
+        
+        link.addAnalogicPinListener(pinNumber, (evt) -> {
+			Platform.runLater(() -> {
+				gauge.setValue(evt.getValue());
 			});
-			link.startListening(Pin.analogPin(portNumber));
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		});
         return tile;
 	}
 	
@@ -138,5 +106,35 @@ public class Factory {
                            .mediumTickMarkColor(Tile.FOREGROUND)
                            .build();
     }
+
+	public static Tile createAnalogGraphTile(String pinName, int pinNumber, Arduino link) {
+		// LineChart Data
+        XYChart.Series<Long, Integer> series = new XYChart.Series<Long, Integer>();
+        series.setName("Whatever");
+//        series.getData().add(new XYChart.Data("MO", 23));
+//        series.getData().add(new XYChart.Data("TU", 21));
+//        series.getData().add(new XYChart.Data("WE", 20));
+//        series.getData().add(new XYChart.Data("TH", 22));
+//        series.getData().add(new XYChart.Data("FR", 24));
+//        series.getData().add(new XYChart.Data("SA", 22));
+//        series.getData().add(new XYChart.Data("SU", 20));
+
+		Tile tile = TileBuilder.create()
+                .prefSize(TILE_SIZE, TILE_SIZE)
+                .skinType(SkinType.AREA_CHART)
+                .title("Analogic " + pinName)
+                .series(series)
+                .minValue(0)
+                .maxValue(1023)
+                .build();
+		
+		link.addAnalogicPinListener(pinNumber, (evt) -> {
+			Platform.runLater(() -> {
+				series.getData().add(new XYChart.Data(new Date().getTime(), 50));
+			});
+		});
+		
+		return tile;
+	}
 
 }

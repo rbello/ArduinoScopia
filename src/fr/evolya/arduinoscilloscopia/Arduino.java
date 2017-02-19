@@ -1,159 +1,175 @@
 package fr.evolya.arduinoscilloscopia;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.util.Enumeration;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-import gnu.io.CommPortIdentifier;
-import gnu.io.SerialPort;
-import gnu.io.SerialPortEvent;
-import gnu.io.SerialPortEventListener;
+import org.ardulink.core.Link;
+import org.ardulink.core.Pin;
+import org.ardulink.core.Pin.DigitalPin;
+import org.ardulink.core.events.AnalogPinValueChangedEvent;
+import org.ardulink.core.events.DigitalPinValueChangedEvent;
+import org.ardulink.core.events.EventListener;
+import org.ardulink.core.events.PinValueChangedEvent;
+import org.ardulink.core.linkmanager.LinkManager;
+import org.ardulink.util.URIs;
 
-public class Arduino implements SerialPortEventListener {
+public class Arduino implements EventListener {
 	
-	SerialPort serialPort;
-	/**
-	* A BufferedReader which will be fed by a InputStreamReader 
-	* converting the bytes into characters 
-	* making the displayed results codepage independent
-	*/
-	private BufferedReader input;
-	/** The output stream to the port */
-	private OutputStream output;
-	private String port;
-	private ReadListener onRead;
-	private Listener onConnected;
-	private Listener onDisconnected;
-	/** Milliseconds to block while waiting for port open */
-	private static final int TIME_OUT = 2000;
-	/** Default bits per second for COM port. */
-	private static final int DATA_RATE = 9600;
-
-	public static final String A0 = null;
-
-	public Arduino(String port) {
-		this.port = port;
+	private Link link;
+	
+	private Map<Integer, ArrayList<PinListener<DigitalPinValueChangedEvent>>> listenersDigitalPin;
+	private Map<Integer, ArrayList<PinListener<AnalogPinValueChangedEvent>>> listenersAnalogicPin;
+	
+	private Arduino(String connectionString) {
+		try {
+	    	LinkManager mgr = LinkManager.getInstance();
+	    	link = mgr.getConfigurer(URIs.newURI(connectionString)).newLink();
+	    	link.addListener(this);
+		}
+		catch (Throwable ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		}
+		listenersDigitalPin = new HashMap<>();
+		listenersAnalogicPin = new HashMap<>();
+		
 	}
-
+	
 	/**
-	 * This should be called when you stop using the port.
-	 * This will prevent port locking on platforms like Linux.
+	 * 
+	 * @return
 	 */
-	public synchronized void close() {
-		if (serialPort != null) {
-			serialPort.removeEventListener();
-			serialPort.close();
+	public static Arduino getAutomaticInstance() {
+		return new Arduino("ardulink://serial-jssc?port=COM5&baudrate=115200&pingprobe=false&waitsecs=1");
+	}
+
+	public boolean switchDigitalPin(int portNumber, boolean value) {
+		try {
+			link.switchDigitalPin(DigitalPin.digitalPin(portNumber), value);
+			return true;
+		}
+		catch (Throwable ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+			return false;
 		}
 	}
 
-	/**
-	 * Handle an event on the serial port. Read the data and print it.
-	 */
-	public synchronized void serialEvent(SerialPortEvent oEvent) {
-		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
-			try {
-				String inputLine=input.readLine();
-				if (onRead != null)
-					onRead.onRead(new Message(inputLine, this));
-			} catch (Exception e) {
-				System.err.println(e.toString());
-			}
-		}
-	}
-
-	public static Arduino create(String port) {
-		return new Arduino(port);
-	}
-
-	public Arduino onConnected(Listener listener) {
-		onConnected = listener;
-		return this;
-	}
-	
-	public Arduino onDisconnected(Listener listener) {
-		onDisconnected = listener;
-		return this;
-	}
-	
-	@FunctionalInterface
-	public static interface Listener {
-		public void onReady(Arduino uno);
-	}
-	
-	public Arduino onRead(ReadListener listener) {
-		onRead = listener;
-		return this;
-	}
-	
-	@FunctionalInterface
-	public static interface ReadListener {
-		public void onRead(Message msg);
-	}
-	
-	public static class Message {
-		public final String contents;
-		public final Arduino arduino;
-		public Message(String contents, Arduino arduino) {
-			this.contents = contents;
-			this.arduino = arduino;
-		}
-		@Override
-		public String toString() {
-			return this.arduino + ": " + contents;
-		}
-	}
-	
 	@Override
-	public String toString() {
-		return String.format("[Arduino %s]", port);
+	public void stateChanged(AnalogPinValueChangedEvent evt) {
+		broadcast(evt, listenersAnalogicPin);
+		
 	}
 
-	public void open() {
-		new Thread(() -> {
-			
-			CommPortIdentifier portId = null;
-			Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
-
-			//First, Find an instance of serial port as set in PORT_NAMES.
-			while (portEnum.hasMoreElements()) {
-				CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
-				if (currPortId.getName().equals(Arduino.this.port)) {
-					portId = currPortId;
-					break;
-				}
-			}
-			if (portId == null) {
-				System.out.println("Could not find port " + Arduino.this.port);
-				return;
-			}
-			
+	@Override
+	public void stateChanged(DigitalPinValueChangedEvent evt) {
+		broadcast(evt, listenersDigitalPin);
+	}
+	
+	private <E extends PinValueChangedEvent> void broadcast(E event, Map<Integer, ArrayList<PinListener<E>>> listeners) {
+		System.out.println(event);
+		// Pin number must be declared as listened
+		if (!listeners.containsKey(event.getPin().pinNum())) return;
+		// Fetch listeners for event propagation
+		for (PinListener<E> listener : listeners.get(event.getPin().pinNum())) {
+			listener.stateChanged(event);
+		}
+	}
+	
+	public boolean addDigitalPinListener(int portNumber, PinListener<DigitalPinValueChangedEvent> listener) {
+		return addListener(Pin.digitalPin(portNumber), listener, listenersDigitalPin);
+	}
+	
+	public boolean addAnalogicPinListener(int portNumber, PinListener<AnalogPinValueChangedEvent> listener) {
+		return addListener(Pin.analogPin(portNumber), listener, listenersAnalogicPin);
+	}
+	
+	private <E extends PinValueChangedEvent> boolean addListener(Pin pin, PinListener<E> listener,
+			Map<Integer, ArrayList<PinListener<E>>> listeners) {
+		if (!listeners.containsKey(pin.pinNum())) {
+			// Create list
+			ArrayList<PinListener<E>> list = new ArrayList<PinListener<E>>();
+			// Add the new one
+			list.add(listener);
+			// Create listeners list
+			listeners.put(pin.pinNum(), list);
+			// Start listening
 			try {
-				// open serial port, and use class name for the appName.
-				serialPort = (SerialPort) portId.open(Arduino.this.getClass().getName(), TIME_OUT);
-
-				// set port parameters
-				serialPort.setSerialPortParams(DATA_RATE,
-						SerialPort.DATABITS_8,
-						SerialPort.STOPBITS_1,
-						SerialPort.PARITY_NONE);
-
-				// open the streams
-				input = new BufferedReader(new InputStreamReader(serialPort.getInputStream()));
-				output = serialPort.getOutputStream();
-
-				// add event listeners
-				serialPort.addEventListener(Arduino.this);
-				serialPort.notifyOnDataAvailable(true);
-				
-				if (Arduino.this.onConnected != null) {
-					Arduino.this.onConnected.onReady(Arduino.this);
-				}
-			} catch (Exception e) {
-				System.err.println(e.toString());
+				link.startListening(pin);
 			}
-			
-		}).start();
+			catch (Throwable ex) {
+				listeners.remove(pin.pinNum());
+				// TODO Auto-generated catch block
+				ex.printStackTrace();
+				return false;
+			}
+		}
+		else {
+			listeners.get(pin.pinNum()).add(listener);
+		}
+		return true;
 	}
-
+	
+	public boolean removeDigitalPinListeners(int portNumber) {
+		return removeListeners(Pin.digitalPin(portNumber), listenersDigitalPin);
+	}
+	
+	public boolean removeAnalogicPinListeners(int portNumber) {
+		return removeListeners(Pin.analogPin(portNumber), listenersAnalogicPin);
+	}
+	
+	private <E extends PinValueChangedEvent> boolean removeListeners(Pin pin, Map<Integer, ArrayList<PinListener<E>>> listeners) {
+		if (listeners.containsKey(pin.pinNum())) {
+			// Detach all listeners
+			listeners.remove(pin.pinNum());
+			// Stop listening
+			try {
+				link.stopListening(pin);
+			}
+			catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	public boolean removeDigitalPinListener(int portNumber, PinListener<DigitalPinValueChangedEvent> listener) {
+		return removeListener(portNumber, listener, listenersDigitalPin);
+	}
+	
+	public boolean removeAnalogicPinListener(int portNumber, PinListener<AnalogPinValueChangedEvent> listener) {
+		return removeListener(portNumber, listener, listenersAnalogicPin);
+	}
+	
+	private <E extends PinValueChangedEvent> boolean removeListener(int portNumber, PinListener<E> listener, 
+			Map<Integer, ArrayList<PinListener<E>>> listeners) {
+		if (listeners.containsKey(portNumber) && listeners.get(portNumber).contains(listener)) {
+			listeners.get(portNumber).remove(listener);
+			if (listeners.get(portNumber).isEmpty()) {
+				// Detach listeners list
+				listeners.remove(portNumber);
+				// Stop listening
+				try {
+					link.stopListening(Pin.digitalPin(portNumber));
+				}
+				catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	@FunctionalInterface
+	public interface PinListener<E> {
+		public void stateChanged(E evt);
+	}
+	
 }

@@ -119,7 +119,8 @@ public class Main extends Application {
     private Tile              colorRegulatorTile;
     private long              lastTimerCall;
     private AnimationTimer    timer;
-	private Link link;
+	private Arduino link;
+	
 
 
 
@@ -568,7 +569,8 @@ public class Main extends Application {
     	MenuItem readAnalog = new MenuItem("Etat d'une GPIO analogique");
     	MenuItem setDigit = new MenuItem("Actionneur GPIO numérique");
     	MenuItem setAnalog = new MenuItem("Actionneur GPIO analogique");
-    	menuFile.getItems().addAll(readDigit, readAnalog, setDigit, setAnalog);
+    	MenuItem graphAnalog = new MenuItem("Graph GPIO analogique");
+    	menuFile.getItems().addAll(readDigit, readAnalog, setDigit, setAnalog, graphAnalog);
     	menuBar.getMenus().addAll(menuFile);
     	
         FlowPane pane = new FlowPane(customTile, percentageTile, clockTile, gaugeTile, sparkLineTile, areaChartTile,
@@ -608,6 +610,9 @@ public class Main extends Application {
                     .build();
     		pane.getChildren().addAll(tile);
     	});
+    	graphAnalog.setOnAction((e) -> {
+    		pane.getChildren().addAll(Factory.createAnalogGraphTile("A0", 0, link));
+    	});
     	
     	final ScrollPane scroll = new ScrollPane();
 
@@ -628,20 +633,7 @@ public class Main extends Application {
         stage.setScene(mainScene);
         stage.show();
 
-        
-        
-        try {
-        	
-        	String connectionString = "ardulink://serial-jssc?port=COM5&baudrate=115200&pingprobe=false&waitsecs=1";
-        	LinkManager mgr = LinkManager.getInstance();
-        	link = mgr.getConfigurer(URIs.newURI(connectionString)).newLink();
-        	//link = Links.getDefault();
-        	
-        	
-        }
-        catch (Throwable t) {
-        	t.printStackTrace();
-        }
+        link = Arduino.getAutomaticInstance();
         
         timer.start();
         
@@ -652,7 +644,6 @@ public class Main extends Application {
                            .skinType(TYPE)
                            .prefSize(TILE_SIZE, TILE_SIZE)
                            .animated(true)
-                           //.title("")
                            .unit("\u00B0C")
                            .valueColor(Tile.FOREGROUND)
                            .titleColor(Tile.FOREGROUND)
