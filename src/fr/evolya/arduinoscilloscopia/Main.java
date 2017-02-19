@@ -602,7 +602,7 @@ public class Main extends Application {
                     .title("Change GPIO A01")
                     .description("A 01")
                     .minValue(0)
-                    .maxValue(255)
+                    .maxValue(1023)
                     .decimals(0)
                     .barBackgroundColor(Tile.FOREGROUND)
                     .build();

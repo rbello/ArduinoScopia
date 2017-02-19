@@ -88,7 +88,10 @@ public class Factory {
 	}
 
 	public static Tile createAnalogReadTile(String portName, int portNumber, Link link) {
-        Gauge gauge = createGauge(Gauge.SkinType.DIGITAL);
+        Gauge gauge = createGauge(Gauge.SkinType.DASHBOARD);
+        gauge.setMinValue(0);
+        gauge.setMaxValue(1023);
+        gauge.setThresholdVisible(false);
         Tile tile = TileBuilder.create()
                                   .prefSize(TILE_SIZE, TILE_SIZE)
                                   .skinType(SkinType.CUSTOM)
@@ -100,16 +103,12 @@ public class Factory {
 			
 			link.addListener(new EventListener() {
 				@Override
-				public void stateChanged(DigitalPinValueChangedEvent evt) {
-					System.out.println("D " + evt);
-				}
+				public void stateChanged(DigitalPinValueChangedEvent evt) { }
 				@Override
 				public void stateChanged(AnalogPinValueChangedEvent evt) {
-					System.out.println("A " + evt);
 					if (evt.getPin().pinNum() != portNumber) return;
 					Platform.runLater(() -> {
-						System.out.println("traité");
-						tile.setValue(evt.getValue());
+						gauge.setValue(evt.getValue());
 					});
 				}
 			});
@@ -126,7 +125,6 @@ public class Factory {
                            .skinType(TYPE)
                            .prefSize(TILE_SIZE, TILE_SIZE)
                            .animated(true)
-                           .unit("\u00B0C") // TODO A virer
                            .valueColor(Tile.FOREGROUND)
                            .titleColor(Tile.FOREGROUND)
                            .unitColor(Tile.FOREGROUND)
