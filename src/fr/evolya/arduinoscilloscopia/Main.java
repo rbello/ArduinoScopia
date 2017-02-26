@@ -1,17 +1,11 @@
 package fr.evolya.arduinoscilloscopia;
 
-import java.io.IOException;
 import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Random;
 
-import org.ardulink.core.Link;
-import org.ardulink.core.Pin;
-import org.ardulink.core.events.AnalogPinValueChangedEvent;
-import org.ardulink.core.events.DigitalPinValueChangedEvent;
-import org.ardulink.core.events.EventListener;
-import org.ardulink.core.linkmanager.LinkManager;
-import org.ardulink.util.URIs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eu.hansolo.fx.regulators.ColorRegulator;
 import eu.hansolo.fx.regulators.ColorRegulatorBuilder;
@@ -35,7 +29,6 @@ import eu.hansolo.tilesfx.skins.BarChartItem;
 import eu.hansolo.tilesfx.skins.LeaderBoardItem;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Bounds;
@@ -632,6 +625,8 @@ public class Main extends Application {
         ((VBox) mainScene.getRoot()).getChildren().addAll(menuBar, scroll);
         stage.setScene(mainScene);
         stage.show();
+        
+        Logger logger = LoggerFactory.getLogger(org.ardulink.core.ConnectionBasedLink.class);
 
         link = Arduino.getAutomaticInstance();
         
