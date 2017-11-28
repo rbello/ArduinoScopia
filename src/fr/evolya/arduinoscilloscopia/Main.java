@@ -581,15 +581,15 @@ public class Main extends Application {
         pane.setPrefSize(1270,  1060);
         pane.setBackground(new Background(new BackgroundFill(Tile.BACKGROUND.darker(), CornerRadii.EMPTY, Insets.EMPTY)));
         
-    	readDigit.setOnAction((e) -> {
-    		pane.getChildren().addAll(Factory.createDigitalReadTile("D05", 5, link));
-    	});
-    	readAnalog.setOnAction((e) -> {
-            pane.getChildren().addAll(Factory.createAnalogReadTile("A0", 0, link));
-    	});
-    	setDigit.setOnAction((e) -> {
-    		pane.getChildren().addAll(Factory.createDigitalWriteTile("D04", 4, link));
-    	});
+//    	readDigit.setOnAction((e) -> {
+//    		pane.getChildren().addAll(Factory.createDigitalReadTile("D05", 5, link));
+//    	});
+//    	readAnalog.setOnAction((e) -> {
+//            pane.getChildren().addAll(Factory.createAnalogReadTile("A0", 0, link));
+//    	});
+//    	setDigit.setOnAction((e) -> {
+//    		pane.getChildren().addAll(Factory.createDigitalWriteTile("D04", 4, link));
+//    	});
     	setAnalog.setOnAction((e) -> {
     		Tile tile = TileBuilder.create()
                     .prefSize(TILE_SIZE, TILE_SIZE)
@@ -603,9 +603,9 @@ public class Main extends Application {
                     .build();
     		pane.getChildren().addAll(tile);
     	});
-    	graphAnalog.setOnAction((e) -> {
-    		pane.getChildren().addAll(Factory.createAnalogGraphTile("A0", 0, link));
-    	});
+//    	graphAnalog.setOnAction((e) -> {
+//    		pane.getChildren().addAll(Factory.createAnalogGraphTile("A0", 0, link));
+//    	});
     	
     	final ScrollPane scroll = new ScrollPane();
 

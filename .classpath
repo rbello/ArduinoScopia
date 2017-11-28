@@ -18,6 +18,5 @@
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/validation-api-1.0.0.GA.jar"/>
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/slf4j-api-1.7.12.jar"/>
 	<classpathentry kind="lib" path="libs/ardulink/ardulink/lib/log4j-1.2.16.jar"/>
-	<classpathentry kind="lib" path="libs/ikonli-typicons-pack-1.9.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
